@@ -344,6 +344,71 @@ class RealEnergyManagementOrchestrator {
         return this.energyReadings;
     }
 
+    getCurrentEnergyReading() {
+        // Return the most recent energy reading
+        if (this.energyReadings.length === 0) {
+            // Generate a current reading if none exists
+            this.updateDeviceReadings();
+        }
+        return this.energyReadings[this.energyReadings.length - 1] || null;
+    }
+
+    getEnergySummary() {
+        // Generate energy summary from current device states
+        const totalCurrentUsage = this.devices.reduce((sum, d) => sum + d.currentPower, 0);
+        const totalTodaysCost = this.devices.reduce((sum, d) => sum + d.todaysCost, 0);
+        const totalTodaysUsage = this.devices.reduce((sum, d) => sum + d.todaysUsage, 0);
+        const activeDevices = this.devices.filter(d => d.isOn).length;
+        const totalDevices = this.devices.length;
+        
+        // Calculate efficiency score based on usage patterns and device states
+        const efficiencyScore = this.calculateEfficiencyScore();
+        
+        return {
+            totalCurrentUsage,
+            totalTodaysCost,
+            totalTodaysUsage,
+            activeDevices,
+            totalDevices,
+            efficiencyScore,
+            lastUpdated: new Date().toISOString()
+        };
+    }
+
+    calculateEfficiencyScore() {
+        // Calculate efficiency based on various factors
+        const activeDeviceRatio = this.devices.filter(d => d.isOn).length / this.devices.length;
+        const averagePowerPerDevice = this.devices.reduce((sum, d) => sum + d.currentPower, 0) / this.devices.length;
+        const hour = new Date().getHours();
+        
+        // Base efficiency score
+        let score = 85;
+        
+        // Adjust for time of day (higher efficiency during off-peak hours)
+        if (hour >= 23 || hour <= 6) {
+            score += 10; // Night time bonus
+        } else if ((hour >= 7 && hour <= 9) || (hour >= 18 && hour <= 21)) {
+            score -= 5; // Peak time penalty
+        }
+        
+        // Adjust for device usage efficiency
+        if (activeDeviceRatio < 0.5) {
+            score += 5; // Bonus for not running too many devices
+        } else if (activeDeviceRatio > 0.8) {
+            score -= 10; // Penalty for running most devices
+        }
+        
+        // Adjust for average power consumption
+        if (averagePowerPerDevice < 1000) {
+            score += 5; // Bonus for low power usage
+        } else if (averagePowerPerDevice > 2000) {
+            score -= 10; // Penalty for high power usage
+        }
+        
+        // Ensure score is within valid range
+        return Math.max(60, Math.min(95, Math.round(score)));
+    }
+
     getPredictions() {
         return this.predictionAgent.getPredictions();
     }

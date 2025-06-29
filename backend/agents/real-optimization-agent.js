@@ -15,6 +15,11 @@ class EnergyOptimizationAgent {
         this.savingsTracked = 0;
         
         console.log('💡 Energy Optimization Agent initialized with AI');
+        
+        // Generate initial recommendations immediately
+        setTimeout(() => {
+            this.generateInitialRecommendations();
+        }, 2000); // Wait 2 seconds for devices to be available
     }
 
     /**
@@ -43,23 +48,24 @@ class EnergyOptimizationAgent {
     async generateRecommendations() {
         try {
             const predictions = this.getPredictions();
-            if (!predictions || predictions.length === 0) {
-                console.log('⏳ No predictions available for optimization, using basic recommendations...');
-                this.recommendations = this.generateBasicRecommendations();
-                this.notifyUpdate();
-                return;
-            }
-
-            console.log('💡 Generating AI-powered optimization recommendations...');
-
             const currentHour = new Date().getHours();
             
-            // Get AI optimization recommendations
-            const aiRecommendations = await this.watsonx.generateOptimizationRecommendations(
-                this.devices,
-                predictions,
-                currentHour
-            );
+            console.log('💡 Generating AI-powered optimization recommendations...');
+
+            // Always generate recommendations, even without predictions
+            let aiRecommendations;
+            
+            if (!predictions || predictions.length === 0) {
+                console.log('⏳ No predictions available, generating immediate recommendations...');
+                aiRecommendations = await this.generateImmediateRecommendations(currentHour);
+            } else {
+                // Get AI optimization recommendations with predictions
+                aiRecommendations = await this.watsonx.generateOptimizationRecommendations(
+                    this.devices,
+                    predictions,
+                    currentHour
+                );
+            }
 
             // Enhance AI recommendations with additional analysis
             const enhancedRecommendations = this.enhanceRecommendations(aiRecommendations, currentHour);
@@ -90,6 +96,226 @@ class EnergyOptimizationAgent {
             this.recommendations = this.generateRuleBasedRecommendations();
             this.lastUpdate = new Date().toISOString();
             this.notifyUpdate();
+        }
+    }
+
+    /**
+     * Generate immediate recommendations without predictions
+     */
+    async generateImmediateRecommendations(currentHour) {
+        const activeDevices = this.devices.filter(d => d.isOn);
+        const totalUsage = this.devices.reduce((sum, d) => sum + d.currentPower, 0);
+        
+        const prompt = `You are a smart home energy optimization expert. Generate immediate actionable recommendations based on current device status.
+
+CURRENT SITUATION:
+- Time: ${currentHour}:00
+- Total Usage: ${totalUsage.toFixed(0)}W
+- Active Devices: ${activeDevices.length}/${this.devices.length}
+
+DEVICE STATUS:
+${this.devices.map(d => `- ${d.name} (${d.type}): ${d.currentPower}W, ${d.isOn ? 'ON' : 'OFF'}${d.targetTemp ? `, Target: ${d.targetTemp}°F` : ''}${d.brightness ? `, Brightness: ${d.brightness}%` : ''}`).join('\n')}
+
+TIME CONTEXT:
+${this.getTimeContext(currentHour)}
+
+Generate 2-4 immediate optimization recommendations in this exact JSON format (no other text):
+{
+  "recommendations": [
+    {
+      "id": "immediate_001",
+      "title": "Optimize High-Usage Device",
+      "description": "Reduce energy consumption of the highest usage device",
+      "category": "immediate",
+      "potentialSavings": 0.85,
+      "priority": "medium",
+      "difficulty": "easy",
+      "estimatedTime": "2 minutes",
+      "devices": ["device_id"],
+      "action": "optimize",
+      "value": "auto"
+    }
+  ]
+}`;
+
+        try {
+            const response = await this.watsonx.generateText(prompt, { temperature: 0.5 });
+            const parsed = this.watsonx.parseJsonResponse(response, null);
+            
+            if (parsed && parsed.recommendations && Array.isArray(parsed.recommendations)) {
+                return parsed.recommendations;
+            }
+            throw new Error('Invalid recommendations format');
+        } catch (error) {
+            console.warn('⚠️ AI immediate recommendations failed, using smart fallback');
+            return this.generateSmartFallbackRecommendations(currentHour);
+        }
+    }
+
+    /**
+     * Generate smart fallback recommendations
+     */
+    generateSmartFallbackRecommendations(currentHour) {
+        const recommendations = [];
+        const activeDevices = this.devices.filter(d => d.isOn);
+        const totalUsage = this.devices.reduce((sum, d) => sum + d.currentPower, 0);
+
+        // High usage optimization
+        if (totalUsage > 3000) {
+            const highUsageDevice = this.devices.reduce((max, device) => 
+                device.currentPower > max.currentPower ? device : max
+            );
+
+            if (highUsageDevice && highUsageDevice.currentPower > 2000) {
+                recommendations.push({
+                    id: 'smart_high_usage',
+                    title: 'Reduce High Energy Device',
+                    description: `${highUsageDevice.name} is using ${highUsageDevice.currentPower}W. Consider optimizing its settings.`,
+                    category: highUsageDevice.type,
+                    potentialSavings: 1.5,
+                    priority: 'high',
+                    difficulty: 'easy',
+                    estimatedTime: '3 minutes',
+                    devices: [highUsageDevice.id],
+                    action: this.getOptimizationAction(highUsageDevice),
+                    value: this.getOptimizationValue(highUsageDevice),
+                    source: 'smart_fallback'
+                });
+            }
+        }
+
+        // Time-based optimizations
+        if (currentHour >= 17 && currentHour <= 19) {
+            // Peak hours - pre-cooling
+            const hvacDevice = this.devices.find(d => d.type === 'hvac' && d.isOn);
+            if (hvacDevice && hvacDevice.targetTemp > 70) {
+                recommendations.push({
+                    id: 'smart_peak_precool',
+                    title: 'Pre-cool Before Peak Rates',
+                    description: 'Lower thermostat now to avoid higher peak electricity rates',
+                    category: 'hvac',
+                    potentialSavings: 1.8,
+                    priority: 'high',
+                    difficulty: 'easy',
+                    estimatedTime: '1 minute',
+                    devices: [hvacDevice.id],
+                    action: 'set_temperature',
+                    value: String(hvacDevice.targetTemp - 3),
+                    source: 'smart_fallback'
+                });
+            }
+        }
+
+        if (currentHour >= 20) {
+            // Late evening - appliance scheduling
+            const appliance = this.devices.find(d => d.type === 'appliance' && !d.isOn);
+            if (appliance) {
+                recommendations.push({
+                    id: 'smart_late_schedule',
+                    title: 'Schedule for Off-Peak Hours',
+                    description: 'Run appliances after 11 PM for significant savings',
+                    category: 'appliances',
+                    potentialSavings: 0.95,
+                    priority: 'medium',
+                    difficulty: 'easy',
+                    estimatedTime: '2 minutes',
+                    devices: [appliance.id],
+                    action: 'schedule',
+                    value: '23:00',
+                    source: 'smart_fallback'
+                });
+            }
+        }
+
+        // Lighting optimization
+        const brightLights = this.devices.filter(d => 
+            d.type === 'lighting' && d.isOn && d.brightness && d.brightness > 85
+        );
+        
+        if (brightLights.length > 0) {
+            brightLights.forEach(light => {
+                recommendations.push({
+                    id: `smart_light_${light.id}`,
+                    title: 'Optimize Lighting Efficiency',
+                    description: 'Reduce brightness slightly for energy savings with minimal impact',
+                    category: 'lighting',
+                    potentialSavings: 0.4,
+                    priority: 'low',
+                    difficulty: 'easy',
+                    estimatedTime: '30 seconds',
+                    devices: [light.id],
+                    action: 'set_brightness',
+                    value: '75',
+                    source: 'smart_fallback'
+                });
+            });
+        }
+
+        // Always provide at least one recommendation
+        if (recommendations.length === 0) {
+            recommendations.push({
+                id: 'smart_general',
+                title: 'System Running Efficiently',
+                description: 'Your energy system is well-optimized. Monitor for new opportunities.',
+                category: 'general',
+                potentialSavings: 0.25,
+                priority: 'low',
+                difficulty: 'easy',
+                estimatedTime: '1 minute',
+                devices: [],
+                action: 'monitor',
+                value: 'continue',
+                source: 'smart_fallback'
+            });
+        }
+
+        return recommendations;
+    }
+
+    /**
+     * Get time context description
+     */
+    getTimeContext(hour) {
+        if (hour >= 6 && hour <= 9) return "Morning peak hours - high energy rates expected";
+        if (hour >= 10 && hour <= 16) return "Daytime normal hours - standard energy rates";
+        if (hour >= 17 && hour <= 21) return "Evening peak hours - highest energy rates";
+        if (hour >= 22 && hour <= 23) return "Late evening - transitioning to off-peak rates";
+        return "Overnight hours - lowest energy rates available";
+    }
+
+    /**
+     * Get optimization action for device
+     */
+    getOptimizationAction(device) {
+        switch (device.type) {
+            case 'hvac':
+                return 'set_temperature';
+            case 'lighting':
+                return 'set_brightness';
+            case 'water_heater':
+                return 'set_temperature';
+            case 'appliance':
+                return 'schedule';
+            default:
+                return 'optimize';
+        }
+    }
+
+    /**
+     * Get optimization value for device
+     */
+    getOptimizationValue(device) {
+        switch (device.type) {
+            case 'hvac':
+                return device.targetTemp ? String(device.targetTemp - 2) : '70';
+            case 'lighting':
+                return device.brightness ? String(Math.max(50, device.brightness - 20)) : '75';
+            case 'water_heater':
+                return '115'; // Safe water heater temperature
+            case 'appliance':
+                return '23:00'; // Off-peak time
+            default:
+                return 'auto';
         }
     }
 
@@ -322,58 +548,6 @@ class EnergyOptimizationAgent {
     }
 
     /**
-     * Generate basic recommendations when AI is unavailable
-     */
-    generateBasicRecommendations() {
-        const recommendations = [];
-        const currentHour = new Date().getHours();
-
-        // Peak hour recommendations
-        if (currentHour >= 17 && currentHour <= 19) {
-            const hvacDevice = this.devices.find(d => d.type === 'hvac' && d.isOn);
-            if (hvacDevice) {
-                recommendations.push({
-                    id: 'basic_hvac_precool',
-                    title: 'Pre-cool Before Peak Hours',
-                    description: 'Lower thermostat before peak electricity rates',
-                    category: 'hvac',
-                    potentialSavings: 1.2,
-                    priority: 'high',
-                    difficulty: 'easy',
-                    estimatedTime: '2 minutes',
-                    devices: [hvacDevice.id],
-                    action: 'set_temperature',
-                    value: '68',
-                    source: 'basic'
-                });
-            }
-        }
-
-        // Off-peak scheduling
-        if (currentHour >= 21) {
-            const appliance = this.devices.find(d => d.type === 'appliance' && !d.isOn);
-            if (appliance) {
-                recommendations.push({
-                    id: 'basic_appliance_schedule',
-                    title: 'Schedule Appliance for Off-Peak',
-                    description: 'Run appliances during cheaper off-peak hours',
-                    category: 'appliances',
-                    potentialSavings: 0.8,
-                    priority: 'medium',
-                    difficulty: 'easy',
-                    estimatedTime: '3 minutes',
-                    devices: [appliance.id],
-                    action: 'schedule',
-                    value: '23:00',
-                    source: 'basic'
-                });
-            }
-        }
-
-        return recommendations;
-    }
-
-    /**
      * Generate rule-based recommendations as fallback
      */
     generateRuleBasedRecommendations() {
@@ -594,6 +768,38 @@ class EnergyOptimizationAgent {
             applied_count: this.appliedRecommendations.length,
             total_savings: this.savingsTracked
         };
+    }
+
+    /**
+     * Generate initial recommendations immediately
+     */
+    async generateInitialRecommendations() {
+        try {
+            console.log('💡 Generating initial recommendations...');
+            const currentHour = new Date().getHours();
+            
+            if (!this.devices || this.devices.length === 0) {
+                console.log('⏳ No devices available yet, will retry...');
+                setTimeout(() => this.generateInitialRecommendations(), 5000);
+                return;
+            }
+            
+            // Generate smart fallback recommendations immediately
+            const recommendations = this.generateSmartFallbackRecommendations(currentHour);
+            
+            if (recommendations.length > 0) {
+                this.recommendations = this.prioritizeRecommendations(recommendations);
+                this.lastUpdate = new Date().toISOString();
+                this.notifyUpdate();
+                
+                console.log(`✅ Generated ${this.recommendations.length} initial recommendations`);
+                this.recommendations.forEach(rec => {
+                    console.log(`   💡 ${rec.title} (${rec.priority} priority, $${rec.potentialSavings.toFixed(2)} savings)`);
+                });
+            }
+        } catch (error) {
+            console.error('❌ Failed to generate initial recommendations:', error.message);
+        }
     }
 }
 
