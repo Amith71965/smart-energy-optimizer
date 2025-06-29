@@ -13,7 +13,7 @@ Dashboard            |  Devices
 
 Dashboard            |  AI Optimization
 :-------------------------:|:-------------------------:
-![](https://github.com/Amith71965/smart-energy-optimizer/blob/a08600532278a204f6742e5252bb463d7dbdf6de/ios-app/App-1.png)  |  ![](https://github.com/Amith71965/smart-energy-optimizer/blob/07a203ceac7e4c53fb105030f2f132b526fe16ed/ios-app/Optimization.png)
+![](https://github.com/Amith71965/smart-energy-optimizer/blob/a08600532278a204f6742e5252bb463d7dbdf6de/ios-app/App-1.png)  |  ![](https://github.com/Amith71965/smart-energy-optimizer/blob/9f3d53e7741129a8fa785dd6ac48c825ae017379/ios-app/Optimization.png)
 
 ## 🎯 **Project Overview**
 
