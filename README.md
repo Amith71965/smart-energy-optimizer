@@ -9,6 +9,10 @@
 
 ![image alt](https://github.com/Amith71965/smart-energy-optimizer/blob/a08600532278a204f6742e5252bb463d7dbdf6de/ios-app/App-1.png)
 
+Solarized dark             |  Solarized Ocean
+:-------------------------:|:-------------------------:
+![](https://github.com/Amith71965/smart-energy-optimizer/blob/a08600532278a204f6742e5252bb463d7dbdf6de/ios-app/App-1.png)  |  ![](https://github.com/Amith71965/smart-energy-optimizer/blob/a08600532278a204f6742e5252bb463d7dbdf6de/ios-app/App-1.png)
+
 ## 🎯 **Project Overview**
 
 Smart Energy Optimizer is an intelligent home energy management system that leverages **IBM watsonx.ai** to provide real-time energy monitoring, AI-powered predictions, and smart optimization recommendations. Built for the IBM TechXchange Hackathon 2025.
