@@ -7,7 +7,7 @@
 ![IBM watsonx.ai](https://img.shields.io/badge/IBM-watsonx.ai-blue.svg)
 ![iOS](https://img.shields.io/badge/iOS-16.0+-lightgrey.svg)
 
-
+![image alt](https://github.com/Amith71965/smart-energy-optimizer/blob/a08600532278a204f6742e5252bb463d7dbdf6de/ios-app/App-1.png)
 
 ## 🎯 **Project Overview**
 
