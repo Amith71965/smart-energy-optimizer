@@ -1,0 +1,50 @@
+version: '3.8'
+services:
+  # Local database (PostgreSQL or CouchDB)
+  database:
+    image: couchdb:3.3
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=password
+    ports:
+      - "5984:5984"
+    volumes:
+      - ./database/data:/opt/couchdb/data
+
+  # Mock IBM services
+  mock-services:
+    build: ./mock-services
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+
+  # Backend API
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=http://admin:password@database:5984
+      - MOCK_SERVICES_URL=http://mock-services:3001
+    depends_on:
+      - database
+      - mock-services
+
+  # IoT Simulators
+  simulators:
+    build: ./simulators
+    environment:
+      - BACKEND_URL=http://backend:3000
+      - MQTT_BROKER=mqtt://mock-services:1883
+    depends_on:
+      - backend
+
+  # Web Dashboard (optional)
+  web-dashboard:
+    build: ./web-dashboard
+    ports:
+      - "3002:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:3000
