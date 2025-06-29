@@ -4,22 +4,33 @@
     "description": "AI-powered smart home energy optimization system for IBM TechXchange Hackathon",
     "main": "backend/server.js",
     "scripts": {
-      "install-all": "npm install && cd backend && npm install && cd ../simulators && npm install && cd ../mock-services && npm install",
-      "dev": "concurrently \"npm run backend\" \"npm run simulator\" \"npm run mock-services\"",
-      "backend": "cd backend && npm run dev",
-      "simulator": "cd simulators && npm run start",
-      "mock-services": "cd mock-services && node mock-server.js",
-      "test": "cd backend && npm test",
-      "build": "cd backend && npm run build",
-      "demo": "npm run generate-demo-data && npm run dev",
-      "generate-demo-data": "node scripts/generate-demo-data.js",
-      "setup": "bash scripts/setup-local.sh"
+        "install-all": "npm install && cd backend && npm install && cd ../simulators && npm install && cd ../mock-services && npm install",
+        "dev": "concurrently \"npm run backend\" \"npm run simulator\" \"npm run mock-services\"",
+        "backend": "cd backend && npm run dev",
+        "simulator": "cd simulators && npm run start",
+        "mock-services": "cd mock-services && node mock-server.js",
+        "test": "cd backend && npm test",
+        "build": "cd backend && npm run build",
+        "demo": "npm run generate-demo-data && npm run dev",
+        "generate-demo-data": "node scripts/generate-demo-data.js",
+        "setup": "bash scripts/setup-local.sh"
     },
-    "keywords": ["energy", "iot", "ai", "ibm", "optimization", "smart-home"],
+    "keywords": [
+        "energy",
+        "iot",
+        "ai",
+        "ibm",
+        "optimization",
+        "smart-home"
+    ],
     "author": "Your Name",
     "license": "MIT",
     "devDependencies": {
-      "concurrently": "^8.2.0",
-      "nodemon": "^3.0.1"
+        "concurrently": "^8.2.0",
+        "nodemon": "^3.0.1"
+    },
+    "dependencies": {
+        "axios": "^1.10.0",
+        "ws": "^8.18.3"
     }
-} 
+}
