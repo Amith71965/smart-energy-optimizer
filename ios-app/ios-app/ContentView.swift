@@ -208,6 +208,23 @@ struct DashboardView: View {
     @State private var animateUsage = false
     @State private var animateCost = false
     
+    // Calculate real-time cost based on current usage
+    private func calculateRealTimeCost() -> Double {
+        let currentUsage = webSocketService.realTimeEnergyReading?.totalPower ?? 
+                          apiManager.energySummary?.totalCurrentUsage ?? 0
+        
+        // Get accumulated cost from API or calculate based on current usage
+        if let apiCost = apiManager.energySummary?.totalTodaysCost, apiCost > 0 {
+            return apiCost
+        }
+        
+        // Fallback: Calculate estimated daily cost from current usage
+        let kWh = currentUsage / 1000.0  // Convert watts to kilowatts
+        let estimatedDailyUsage = kWh * 24.0  // Estimate full day usage
+        let ratePerKWh = 0.12  // $0.12 per kWh
+        return estimatedDailyUsage * ratePerKWh
+    }
+    
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 20) {
@@ -245,7 +262,7 @@ struct DashboardView: View {
                     
                     // Cost Counter
                     CostCounter(
-                        cost: apiManager.energySummary?.totalTodaysCost ?? 0,
+                        cost: calculateRealTimeCost(),
                         animate: animateCost
                     )
                 }

@@ -25,9 +25,8 @@ struct DevicesView: View {
                                 Text("Smart Devices")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
-                                    .foregroundStyle(
-                                        LinearGradient(colors: [.white, .energyBlue], startPoint: .leading, endPoint: .trailing)
-                                    )
+                                    .foregroundColor(.black)
+                                    .shadow(color: .white.opacity(0.3), radius: 2, x: 0, y: 1)
                                 
                                 Spacer()
                                 
@@ -36,18 +35,34 @@ struct DevicesView: View {
                             
                             Text("Control and monitor your smart home devices")
                                 .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.black.opacity(0.8))
+                                .shadow(color: .white.opacity(0.3), radius: 1, x: 0, y: 1)
                         }
                         .padding(.horizontal)
                         .padding(.top)
                         
                         // Device Cards
-                        ForEach(devices) { device in
-                            DeviceControlCard(device: device) {
-                                selectedDevice = device
-                                showingDeviceDetail = true
+                        if devices.isEmpty {
+                            // Loading or empty state
+                            VStack(spacing: 16) {
+                                ProgressView()
+                                    .tint(.energyBlue)
+                                    .scaleEffect(1.5)
+                                
+                                Text("Loading devices...")
+                                    .font(.subheadline)
+                                    .foregroundColor(.white.opacity(0.7))
                             }
+                            .frame(maxWidth: .infinity, minHeight: 200)
                             .padding(.horizontal)
+                        } else {
+                            ForEach(devices) { device in
+                                DeviceControlCard(device: device) {
+                                    selectedDevice = device
+                                    showingDeviceDetail = true
+                                }
+                                .padding(.horizontal)
+                            }
                         }
                         
                         Spacer(minLength: 100) // Tab bar spacing
@@ -55,6 +70,11 @@ struct DevicesView: View {
                 }
                 .refreshable {
                     await apiManager.refreshAllData()
+                }
+                .onAppear {
+                    Task {
+                        await apiManager.refreshAllData()
+                    }
                 }
             }
         }
