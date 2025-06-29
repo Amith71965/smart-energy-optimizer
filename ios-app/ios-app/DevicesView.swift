@@ -7,8 +7,62 @@ struct DevicesView: View {
     @State private var showingDeviceDetail = false
     
     var devices: [EnergyDevice] {
-        webSocketService.realTimeDeviceUpdates.isEmpty ? 
-        apiManager.devices : webSocketService.realTimeDeviceUpdates
+        // Use WebSocket data if available, otherwise API data, otherwise mock data
+        if !webSocketService.realTimeDeviceUpdates.isEmpty {
+            return webSocketService.realTimeDeviceUpdates
+        } else if !apiManager.devices.isEmpty {
+            return apiManager.devices
+        } else {
+            return mockDevices
+        }
+    }
+    
+    // Mock devices for fallback
+    private var mockDevices: [EnergyDevice] {
+        [
+            EnergyDevice(
+                id: "hvac_001",
+                name: "Living Room Thermostat",
+                type: .hvac,
+                location: "Living Room",
+                isOn: true,
+                currentPower: 1200,
+                todaysUsage: 28.5,
+                todaysCost: 3.42,
+                targetTemp: 72
+            ),
+            EnergyDevice(
+                id: "water_heater_001",
+                name: "Water Heater",
+                type: .waterHeater,
+                location: "Basement",
+                isOn: true,
+                currentPower: 1500,
+                todaysUsage: 35.2,
+                todaysCost: 4.22
+            ),
+            EnergyDevice(
+                id: "lighting_001",
+                name: "Kitchen Lights",
+                type: .lighting,
+                location: "Kitchen",
+                isOn: true,
+                currentPower: 75,
+                todaysUsage: 4.8,
+                todaysCost: 0.58,
+                brightness: 85
+            ),
+            EnergyDevice(
+                id: "washer_001",
+                name: "Washing Machine",
+                type: .appliance,
+                location: "Laundry Room",
+                isOn: false,
+                currentPower: 0,
+                todaysUsage: 2.1,
+                todaysCost: 0.25
+            )
+        ]
     }
     
     var body: some View {
@@ -51,7 +105,8 @@ struct DevicesView: View {
                                 
                                 Text("Loading devices...")
                                     .font(.subheadline)
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .foregroundColor(.black.opacity(0.8))
+                                    .shadow(color: .white.opacity(0.3), radius: 1, x: 0, y: 1)
                             }
                             .frame(maxWidth: .infinity, minHeight: 200)
                             .padding(.horizontal)

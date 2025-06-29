@@ -320,8 +320,8 @@ extension Color {
     static let energyBlue = Color(red: 0.0, green: 0.48, blue: 1.0)
     static let energyRed = Color(red: 1.0, green: 0.23, blue: 0.19)
     
-    static let glassMaterial = Color.white.opacity(0.8)
-    static let glassStroke = Color.white.opacity(0.4)
+    static let glassMaterial = Color.white.opacity(0.9)
+    static let glassStroke = Color.black.opacity(0.1)
     
     static var energyGradient: LinearGradient {
         LinearGradient(
@@ -333,7 +333,7 @@ extension Color {
     
     static var backgroundGradient: LinearGradient {
         LinearGradient(
-            colors: [Color.black, Color.energyBlue.opacity(0.2)],
+            colors: [Color.white.opacity(0.95), Color.energyBlue.opacity(0.1)],
             startPoint: .top,
             endPoint: .bottom
         )

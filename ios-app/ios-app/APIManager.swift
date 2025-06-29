@@ -85,24 +85,69 @@ class APIManager: ObservableObject {
         let predictionsResultValue = await predictionsResult
         let recommendationsResultValue = await recommendationsResult
         
+        // Update state based on successful results
+        switch devicesResultValue {
+        case .success(let response):
+            print("✅ Devices loaded: \(response.data.count) devices")
+            self.devices = response.data
+        case .failure(let error):
+            print("❌ Devices failed: \(error.localizedDescription)")
+            self.lastError = error.localizedDescription
+        }
+        
+        switch summaryResultValue {
+        case .success(let response):
+            self.energySummary = response.data
+        case .failure(let error):
+            self.lastError = error.localizedDescription
+        }
+        
+        switch currentResultValue {
+        case .success(let response):
+            self.currentReading = response.data
+        case .failure(let error):
+            self.lastError = error.localizedDescription
+        }
+        
+        switch predictionsResultValue {
+        case .success(let response):
+            self.predictions = response.predictions.map { predictionData in
+                Prediction(
+                    hour: predictionData.hour,
+                    predictedUsage: predictionData.predictedUsage,
+                    predictedCost: predictionData.predictedCost,
+                    confidence: predictionData.confidence
+                )
+            }
+        case .failure(let error):
+            self.lastError = error.localizedDescription
+        }
+        
+        switch recommendationsResultValue {
+        case .success(let response):
+            self.recommendations = response.recommendations
+        case .failure(let error):
+            self.lastError = error.localizedDescription
+        }
+        
         isLoading = false
     }
     
     // MARK: - API Endpoints
     
     // Fetch all devices
-    func fetchDevices() async -> Result<[EnergyDevice], APIError> {
-        return await performRequest(endpoint: "/api/devices", method: "GET", body: Optional<String>.none, responseType: [EnergyDevice].self)
+    func fetchDevices() async -> Result<DevicesResponse, APIError> {
+        return await performRequest(endpoint: "/api/devices", method: "GET", body: Optional<String>.none, responseType: DevicesResponse.self)
     }
     
     // Fetch energy summary
-    func fetchEnergySummary() async -> Result<EnergySummary, APIError> {
-        return await performRequest(endpoint: "/api/energy/summary", method: "GET", body: Optional<String>.none, responseType: EnergySummary.self)
+    func fetchEnergySummary() async -> Result<EnergySummaryResponse, APIError> {
+        return await performRequest(endpoint: "/api/energy/summary", method: "GET", body: Optional<String>.none, responseType: EnergySummaryResponse.self)
     }
     
     // Fetch current energy reading
-    func fetchCurrentReading() async -> Result<EnergyReading, APIError> {
-        return await performRequest(endpoint: "/api/energy/current", method: "GET", body: Optional<String>.none, responseType: EnergyReading.self)
+    func fetchCurrentReading() async -> Result<EnergyReadingResponse, APIError> {
+        return await performRequest(endpoint: "/api/energy/current", method: "GET", body: Optional<String>.none, responseType: EnergyReadingResponse.self)
     }
     
     // Fetch AI predictions
@@ -183,10 +228,7 @@ class APIManager: ObservableObject {
             
             let result = try decoder.decode(responseType, from: data)
             
-            // Update local state on main thread
-            await MainActor.run {
-                updateLocalState(with: result)
-            }
+            // State updates are handled in fetchAllData method
             
             return .success(result)
             
@@ -200,32 +242,7 @@ class APIManager: ObservableObject {
     }
     
     // MARK: - State Management
-    @MainActor
-    private func updateLocalState<T>(with result: T) {
-        switch result {
-        case let devices as [EnergyDevice]:
-            self.devices = devices
-        case let summary as EnergySummary:
-            self.energySummary = summary
-        case let reading as EnergyReading:
-            self.currentReading = reading
-        case let predictionResponse as PredictionResponse:
-            self.predictions = predictionResponse.predictions.map { predictionData in
-                Prediction(
-                    hour: predictionData.hour,
-                    predictedUsage: predictionData.predictedUsage,
-                    predictedCost: predictionData.predictedCost,
-                    confidence: predictionData.confidence
-                )
-            }
-        case let optimizationResponse as OptimizationResponse:
-            self.recommendations = optimizationResponse.recommendations
-        default:
-            break
-        }
-        
-        lastError = nil
-    }
+    // State updates are now handled directly in fetchAllData method
     
     // MARK: - Convenience Methods
     func refreshAllData() async {
@@ -237,16 +254,24 @@ class APIManager: ObservableObject {
     }
     
     func toggleDevice(_ deviceId: String) async {
-        guard let device = getDevice(by: deviceId) else { return }
+        // Simplified toggle that just sends the action
+        let endpoint = "/api/devices/\(deviceId)/control"
         
-        let action = DeviceControlAction.toggle(!device.isOn)
-        let result = await controlDevice(deviceId: deviceId, action: action)
+        guard let url = URL(string: baseURL + endpoint) else { return }
         
-        switch result {
-        case .success:
-            // Device state will be updated via WebSocket or next refresh
-            break
-        case .failure(let error):
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body = ["action": "toggle"]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            let (_, _) = try await session.data(for: request)
+            
+            // Refresh devices after control action
+            await fetchAllData()
+        } catch {
             await MainActor.run {
                 self.lastError = error.localizedDescription
             }
@@ -370,4 +395,22 @@ enum APIError: Error, LocalizedError {
             return "No data received"
         }
     }
-} 
+}
+
+// MARK: - API Response Wrappers
+struct DevicesResponse: Codable {
+    let status: String
+    let data: [EnergyDevice]
+    let count: Int
+}
+
+struct EnergySummaryResponse: Codable {
+    let status: String
+    let data: EnergySummary
+}
+
+struct EnergyReadingResponse: Codable {
+    let status: String
+    let data: EnergyReading
+    let timestamp: String
+}
