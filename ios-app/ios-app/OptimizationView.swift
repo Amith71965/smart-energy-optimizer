@@ -7,6 +7,7 @@ struct OptimizationView: View {
     @State private var selectedRecommendation: Recommendation?
     @State private var appliedRecommendations: Set<String> = []
     @State private var showingSavingsDetail = false
+    @State private var isLoading = false
     
     var recommendations: [Recommendation] {
         webSocketService.realTimeRecommendations.isEmpty ? 
@@ -20,8 +21,12 @@ struct OptimizationView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color.backgroundGradient
-                    .ignoresSafeArea()
+                LinearGradient(
+                    colors: [Color.white.opacity(0.95), Color.blue.opacity(0.1)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
                 
                 ScrollView {
                     LazyVStack(spacing: 20) {
@@ -31,9 +36,7 @@ struct OptimizationView: View {
                                 Text("AI Optimization")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
-                                    .foregroundStyle(
-                                        LinearGradient(colors: [.white, .energyBlue], startPoint: .leading, endPoint: .trailing)
-                                    )
+                                    .foregroundColor(.black)
                                 
                                 Spacer()
                                 
@@ -42,39 +45,140 @@ struct OptimizationView: View {
                             
                             Text("Smart recommendations to optimize your energy usage")
                                 .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.black.opacity(0.7))
                         }
                         .padding(.horizontal)
                         .padding(.top)
                         
-                        // Placeholder content
-                        VStack(spacing: 20) {
-                            Text("🤖 AI Recommendations")
-                                .font(.title)
-                                .foregroundColor(.white)
-                            
-                            Text("Smart optimization recommendations coming soon...")
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.7))
-                                .multilineTextAlignment(.center)
+                        // Loading state
+                        if isLoading {
+                            VStack(spacing: 16) {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                    .tint(.blue)
+                                
+                                Text("AI analyzing your energy patterns...")
+                                    .font(.subheadline)
+                                    .foregroundColor(.black.opacity(0.7))
+                            }
+                            .padding(40)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                            )
+                            .shadow(radius: 10)
+                            .padding(.horizontal)
                         }
-                        .padding(40)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.glassStroke, lineWidth: 1)
-                        )
-                        .shadow(radius: 10)
-                        .padding(.horizontal)
+                        // Show recommendations if available
+                        else if !recommendations.isEmpty {
+                            // Savings Summary Card
+                            SavingsSummaryCard(
+                                totalSavings: totalPotentialSavings,
+                                recommendationCount: recommendations.count
+                            ) {
+                                showingSavingsDetail = true
+                            }
+                            .padding(.horizontal)
+                            
+                            // AI Recommendations Header
+                            HStack {
+                                Text("🤖 AI Recommendations")
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.black)
+                                
+                                Spacer()
+                                
+                                Text("\(recommendations.count) active")
+                                    .font(.caption)
+                                    .foregroundColor(.black.opacity(0.6))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.blue.opacity(0.1), in: Capsule())
+                            }
+                            .padding(.horizontal)
+                            
+                            // Recommendations List
+                            ForEach(recommendations) { recommendation in
+                                RecommendationCard(
+                                    recommendation: recommendation,
+                                    isApplied: appliedRecommendations.contains(recommendation.id)
+                                ) {
+                                    selectedRecommendation = recommendation
+                                    showingApplyConfirmation = true
+                                }
+                                .padding(.horizontal)
+                            }
+                            
+                            // Optimization History
+                            OptimizationHistoryCard()
+                                .padding(.horizontal)
+                        }
+                        // No recommendations available
+                        else {
+                            NoRecommendationsView()
+                                .padding(.horizontal)
+                        }
                         
                         Spacer(minLength: 100) // Tab bar spacing
                     }
                 }
                 .refreshable {
-                    await apiManager.refreshAllData()
+                    await loadRecommendations()
                 }
             }
         }
+        .sheet(isPresented: $showingApplyConfirmation) {
+            if let recommendation = selectedRecommendation {
+                ApplyRecommendationSheet(recommendation: recommendation) {
+                    await applyRecommendation(recommendation)
+                }
+            }
+        }
+        .sheet(isPresented: $showingSavingsDetail) {
+            SavingsDetailSheet(
+                recommendations: recommendations,
+                totalSavings: totalPotentialSavings
+            )
+        }
+        .onAppear {
+            Task {
+                await loadRecommendations()
+            }
+        }
+    }
+    
+    private func loadRecommendations() async {
+        isLoading = true
+        
+        // Fetch recommendations from API
+        await apiManager.refreshAllData()
+        
+        // Small delay to show loading state
+        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        
+        isLoading = false
+    }
+    
+    private func applyRecommendation(_ recommendation: Recommendation) async {
+        // Apply the recommendation through the API
+        let result = await apiManager.applyRecommendation(recommendationId: recommendation.id)
+        
+        switch result {
+        case .success:
+            // Mark as applied
+            appliedRecommendations.insert(recommendation.id)
+            
+            // Refresh data to get updated recommendations
+            await loadRecommendations()
+            
+        case .failure(let error):
+            print("Failed to apply recommendation: \(error.localizedDescription)")
+        }
+        
+        showingApplyConfirmation = false
+        selectedRecommendation = nil
     }
 }
 
@@ -85,23 +189,23 @@ struct AIStatusIndicator: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "brain.head.profile")
-                .foregroundColor(.energyBlue)
+                .foregroundColor(.blue)
                 .scaleEffect(webSocketService.isConnected ? 1.1 : 1.0)
                 .animation(.easeInOut(duration: 1.0).repeatForever(), value: webSocketService.isConnected)
             
             Text("AI Analyzing")
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(.white)
+                .foregroundColor(.black)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(
             Capsule()
-                .stroke(Color.energyBlue.opacity(0.5), lineWidth: 1)
+                .stroke(Color.blue.opacity(0.5), lineWidth: 1)
         )
-        .shadow(color: .energyBlue.opacity(0.3), radius: 4)
+        .shadow(color: .blue.opacity(0.3), radius: 4)
     }
 }
 
@@ -118,17 +222,17 @@ struct SavingsSummaryCard: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Potential Savings")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                         
                         HStack(spacing: 8) {
-                            Text(totalSavings.formattedCost)
+                            Text(String(format: "$%.2f", totalSavings))
                                 .font(.title)
                                 .fontWeight(.bold)
-                                .foregroundColor(.energyGreen)
+                                .foregroundColor(.green)
                             
                             Text("per month")
                                 .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.black.opacity(0.7))
                         }
                     }
                     
@@ -137,18 +241,18 @@ struct SavingsSummaryCard: View {
                     VStack(spacing: 8) {
                         ZStack {
                             Circle()
-                                .fill(.energyGreen.opacity(0.2))
+                                .fill(.green.opacity(0.2))
                                 .frame(width: 50, height: 50)
                             
                             Image(systemName: "leaf.fill")
                                 .font(.title2)
-                                .foregroundColor(.energyGreen)
+                                .foregroundColor(.green)
                         }
                         
                         Text("\(recommendationCount)")
                             .font(.caption)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                     }
                 }
                 
@@ -159,22 +263,22 @@ struct SavingsSummaryCard: View {
                     
                     Text("Tap to see detailed savings breakdown")
                         .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.black.opacity(0.7))
                     
                     Spacer()
                     
                     Image(systemName: "chevron.right")
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(.black.opacity(0.5))
                 }
             }
             .padding(20)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.energyGreen.opacity(0.3), lineWidth: 1)
+                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
             )
-            .shadow(color: .energyGreen.opacity(0.2), radius: 10)
+            .shadow(color: .green.opacity(0.2), radius: 10)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -214,7 +318,7 @@ struct RecommendationCard: View {
                     Text(recommendation.title)
                         .font(.headline)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                 }
                 
                 Spacer()
@@ -222,14 +326,14 @@ struct RecommendationCard: View {
                 if isApplied {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.title2)
-                        .foregroundColor(.energyGreen)
+                        .foregroundColor(.green)
                 }
             }
             
             // Description
             Text(recommendation.description)
                 .font(.subheadline)
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.black.opacity(0.7))
                 .lineLimit(3)
             
             // Savings and action
@@ -237,12 +341,12 @@ struct RecommendationCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Potential Savings")
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(.black.opacity(0.6))
                     
-                    Text(recommendation.potentialSavings.formattedCost)
+                    Text(String(format: "$%.2f", recommendation.potentialSavings))
                         .font(.headline)
                         .fontWeight(.bold)
-                        .foregroundColor(.energyGreen)
+                        .foregroundColor(.green)
                 }
                 
                 Spacer()
@@ -256,13 +360,13 @@ struct RecommendationCard: View {
                     Text("Applied")
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(.energyGreen)
+                        .foregroundColor(.green)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(.energyGreen.opacity(0.1), in: Capsule())
+                        .background(.green.opacity(0.1), in: Capsule())
                         .overlay(
                             Capsule()
-                                .stroke(.energyGreen.opacity(0.3), lineWidth: 1)
+                                .stroke(.green.opacity(0.3), lineWidth: 1)
                         )
                 }
             }
@@ -342,23 +446,23 @@ struct NoRecommendationsView: View {
         VStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(.energyGreen.opacity(0.2))
+                    .fill(.green.opacity(0.2))
                     .frame(width: 80, height: 80)
                 
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 40))
-                    .foregroundColor(.energyGreen)
+                    .foregroundColor(.green)
             }
             
             VStack(spacing: 8) {
                 Text("All Optimized!")
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                 
                 Text("Your energy system is running efficiently. Check back later for new optimization opportunities.")
                     .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(.black.opacity(0.7))
                     .multilineTextAlignment(.center)
             }
         }
@@ -366,7 +470,7 @@ struct NoRecommendationsView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.energyGreen.opacity(0.3), lineWidth: 1)
+                .stroke(Color.green.opacity(0.3), lineWidth: 1)
         )
         .shadow(radius: 10)
     }
@@ -378,7 +482,7 @@ struct OptimizationHistoryCard: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Recent Optimizations")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(.black)
             
             VStack(spacing: 12) {
                 HistoryItem(
@@ -407,7 +511,7 @@ struct OptimizationHistoryCard: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.glassStroke, lineWidth: 1)
+                .stroke(Color.black.opacity(0.1), lineWidth: 1)
         )
         .shadow(radius: 10)
     }
@@ -424,18 +528,18 @@ struct HistoryItem: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundColor(.energyGreen)
+                .foregroundColor(.green)
                 .frame(width: 24, height: 24)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                 
                 Text(timeAgo)
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(.black.opacity(0.6))
             }
             
             Spacer()
@@ -443,7 +547,7 @@ struct HistoryItem: View {
             Text(savings)
                 .font(.subheadline)
                 .fontWeight(.bold)
-                .foregroundColor(.energyGreen)
+                .foregroundColor(.green)
         }
         .padding(.vertical, 4)
     }
@@ -501,7 +605,7 @@ struct ApplyRecommendationSheet: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            Text(recommendation.potentialSavings.formattedCost)
+                            Text(String(format: "$%.2f", recommendation.potentialSavings))
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.green)
@@ -515,49 +619,53 @@ struct ApplyRecommendationSheet: View {
                                 .foregroundColor(.secondary)
                             
                             Text(recommendation.priority.rawValue.capitalized)
-                                .font(.subheadline)
+                                .font(.headline)
                                 .fontWeight(.bold)
                                 .foregroundColor(recommendation.priority.color)
                         }
                     }
                 }
-                .padding()
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
                 
                 Spacer()
                 
-                // Apply Button
-                Button(action: {
-                    Task {
+                // Action buttons
+                VStack(spacing: 12) {
+                    Button(action: {
                         isApplying = true
-                        await onApply()
-                        isApplying = false
-                    }
-                }) {
-                    HStack {
-                        if isApplying {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Image(systemName: "checkmark")
+                        Task {
+                            await onApply()
+                            isApplying = false
                         }
-                        
-                        Text(isApplying ? "Applying..." : "Apply Recommendation")
-                            .fontWeight(.semibold)
+                    }) {
+                        HStack {
+                            if isApplying {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Image(systemName: "wand.and.stars")
+                            }
+                            
+                            Text(isApplying ? "Applying..." : "Apply Recommendation")
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(recommendation.priority.gradient, in: RoundedRectangle(cornerRadius: 12))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(recommendation.priority.color, in: RoundedRectangle(cornerRadius: 12))
-                    .foregroundColor(.white)
+                    .disabled(isApplying)
+                    
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.secondary)
                 }
-                .disabled(isApplying)
             }
             .padding()
-            .navigationTitle("Optimization")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
+                    Button("Close") {
                         dismiss()
                     }
                 }
@@ -576,9 +684,44 @@ struct SavingsDetailSheet: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                Text("Detailed savings breakdown coming soon...")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                // Total savings summary
+                VStack(spacing: 12) {
+                    Text("Total Monthly Savings")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    
+                    Text(String(format: "$%.2f", totalSavings))
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                }
+                .padding()
+                .background(.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+                
+                // Breakdown by recommendation
+                List {
+                    ForEach(recommendations) { recommendation in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(recommendation.title)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                
+                                Text(recommendation.priority.rawValue.capitalized)
+                                    .font(.caption)
+                                    .foregroundColor(recommendation.priority.color)
+                            }
+                            
+                            Spacer()
+                            
+                            Text(String(format: "$%.2f", recommendation.potentialSavings))
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.green)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
                 
                 Spacer()
             }
@@ -594,4 +737,10 @@ struct SavingsDetailSheet: View {
             }
         }
     }
+}
+
+#Preview {
+    OptimizationView()
+        .environmentObject(APIManager())
+        .environmentObject(WebSocketService())
 } 

@@ -188,6 +188,31 @@ struct ChartDataPoint: Identifiable {
     }
 }
 
+// MARK: - Analytics Data Models
+struct AnalyticsDataPoint: Identifiable, Codable {
+    let id = UUID()
+    let timestamp: String
+    let value: Double
+    let label: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case timestamp, value, label
+    }
+    
+    init(timestamp: String, value: Double, label: String? = nil) {
+        self.timestamp = timestamp
+        self.value = value
+        self.label = label
+    }
+    
+    init(date: Date, value: Double, label: String? = nil) {
+        let formatter = ISO8601DateFormatter()
+        self.timestamp = formatter.string(from: date)
+        self.value = value
+        self.label = label
+    }
+}
+
 struct UsageChartData {
     let current: [ChartDataPoint]
     let predicted: [ChartDataPoint]

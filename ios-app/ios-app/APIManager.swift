@@ -160,6 +160,18 @@ class APIManager: ObservableObject {
         return await performRequest(endpoint: "/api/optimization/recommendations", method: "GET", body: Optional<String>.none, responseType: OptimizationResponse.self)
     }
     
+    // Fetch analytics data for charts
+    func fetchAnalyticsData(timeRange: String, chartType: String) async -> Result<AnalyticsResponse, APIError> {
+        let endpoint = "/api/energy/analytics?timeRange=\(timeRange)&chartType=\(chartType)"
+        return await performRequest(endpoint: endpoint, method: "GET", body: Optional<String>.none, responseType: AnalyticsResponse.self)
+    }
+    
+    // Fetch historical energy data
+    func fetchHistoricalData(hours: Int = 24) async -> Result<HistoricalDataResponse, APIError> {
+        let endpoint = "/api/energy/history?hours=\(hours)"
+        return await performRequest(endpoint: endpoint, method: "GET", body: Optional<String>.none, responseType: HistoricalDataResponse.self)
+    }
+    
     // Control device
     func controlDevice(deviceId: String, action: DeviceControlAction) async -> Result<EnergyDevice, APIError> {
         let endpoint = "/api/devices/\(deviceId)/control"
@@ -413,4 +425,25 @@ struct EnergyReadingResponse: Codable {
     let status: String
     let data: EnergyReading
     let timestamp: String
+}
+
+struct AnalyticsResponse: Codable {
+    let status: String
+    let data: [AnalyticsDataPoint]
+    let timeRange: String
+    let chartType: String
+    let generatedAt: String
+}
+
+struct HistoricalDataResponse: Codable {
+    let status: String
+    let data: [HistoricalEnergyReading]
+    let hours: Int
+    let generatedAt: String
+}
+
+struct HistoricalEnergyReading: Codable {
+    let timestamp: String
+    let totalPower: Double
+    let devices: [DeviceReading]
 }

@@ -76,21 +76,19 @@ struct DevicesView: View {
                         // Header
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text("Smart Devices")
-                                    .font(.largeTitle)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.black)
-                                    .shadow(color: .white.opacity(0.3), radius: 2, x: 0, y: 1)
-                                
-                                Spacer()
-                                
-                                DeviceStatusSummary(devices: devices)
-                            }
-                            
-                            Text("Control and monitor your smart home devices")
-                                .font(.subheadline)
-                                .foregroundColor(.black.opacity(0.8))
-                                .shadow(color: .white.opacity(0.3), radius: 1, x: 0, y: 1)
+                                                        Text("Smart Devices")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                        
+                        Spacer()
+                        
+                        DeviceStatusSummary(devices: devices)
+                    }
+                    
+                    Text("Control and monitor your smart home devices")
+                        .font(.subheadline)
+                        .foregroundColor(.black.opacity(0.7))
                         }
                         .padding(.horizontal)
                         .padding(.top)
@@ -103,10 +101,9 @@ struct DevicesView: View {
                                     .tint(.energyBlue)
                                     .scaleEffect(1.5)
                                 
-                                Text("Loading devices...")
-                                    .font(.subheadline)
-                                    .foregroundColor(.black.opacity(0.8))
-                                    .shadow(color: .white.opacity(0.3), radius: 1, x: 0, y: 1)
+                                                Text("Loading devices...")
+                    .font(.subheadline)
+                    .foregroundColor(.black.opacity(0.7))
                             }
                             .frame(maxWidth: .infinity, minHeight: 200)
                             .padding(.horizontal)
@@ -165,12 +162,12 @@ struct DeviceStatusSummary: View {
                 Text("\(activeDevices)/\(devices.count)")
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
             }
             
             Text(totalPower.formattedPower)
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(.black.opacity(0.6))
         }
     }
 }
@@ -215,11 +212,11 @@ struct DeviceControlCard: View {
                         Text(device.name)
                             .font(.headline)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                         
                         Text(device.location)
                             .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(.black.opacity(0.7))
                     }
                 }
                 
@@ -266,7 +263,7 @@ struct DeviceControlCard: View {
                 Button("Details") {
                     onTap()
                 }
-                .foregroundColor(.white)
+                .foregroundColor(.black)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(.ultraThinMaterial, in: Capsule())
@@ -431,11 +428,11 @@ struct PowerInfoCard: View {
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(.black)
             
             Text(title)
                 .font(.caption2)
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(.black.opacity(0.6))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -458,9 +455,9 @@ struct TemperatureControl: View {
     var body: some View {
         VStack(spacing: 12) {
             HStack {
-                Text("Temperature")
-                    .font(.subheadline)
-                    .foregroundColor(.white)
+                            Text("Temperature")
+                .font(.subheadline)
+                .foregroundColor(.black)
                 
                 Spacer()
                 
@@ -531,9 +528,9 @@ struct BrightnessControl: View {
     var body: some View {
         VStack(spacing: 12) {
             HStack {
-                Text("Brightness")
-                    .font(.subheadline)
-                    .foregroundColor(.white)
+                            Text("Brightness")
+                .font(.subheadline)
+                .foregroundColor(.black)
                 
                 Spacer()
                 
@@ -626,11 +623,11 @@ struct DeviceDetailView: View {
                                 Text(device.name)
                                     .font(.title)
                                     .fontWeight(.bold)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.black)
                                 
                                 Text(device.location)
                                     .font(.subheadline)
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .foregroundColor(.black.opacity(0.7))
                             }
                         }
                         .padding(.top, 20)
@@ -638,7 +635,7 @@ struct DeviceDetailView: View {
                         // Status and controls would go here
                         Text("Device details and advanced controls coming soon...")
                             .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.black.opacity(0.7))
                             .padding()
                     }
                 }
