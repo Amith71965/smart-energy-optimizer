@@ -7,6 +7,8 @@
 ![IBM watsonx.ai](https://img.shields.io/badge/IBM-watsonx.ai-blue.svg)
 ![iOS](https://img.shields.io/badge/iOS-16.0+-lightgrey.svg)
 
+
+
 ## 🎯 **Project Overview**
 
 Smart Energy Optimizer is an intelligent home energy management system that leverages **IBM watsonx.ai** to provide real-time energy monitoring, AI-powered predictions, and smart optimization recommendations. Built for the IBM TechXchange Hackathon 2025.
