@@ -168,21 +168,7 @@ Smart Energy Optimizer is an intelligent home energy management system that leve
 ### **WebSocket**
 - `ws://localhost:3000` - Real-time data streaming
 
-## 📊 **Demo Data**
-
-The system includes realistic device simulation:
-- **HVAC System:** 800-1200W consumption
-- **Water Heater:** 1000-1500W consumption  
-- **Kitchen Lights:** 50-100W consumption
-- **Washing Machine:** 0W (off) / 800W (running)
-
 ## 🎨 **Design System**
-
-### **Colors**
-- Energy Blue: `#007AFF`
-- Energy Green: `#34C759`
-- Energy Orange: `#FF9500`
-- Energy Red: `#FF3B30`
 
 ### **UI Features**
 - Glassmorphism design with ultra-thin materials
@@ -193,7 +179,7 @@ The system includes realistic device simulation:
 ## 🏆 **Hackathon Highlights**
 
 ### **Innovation**
-- ✅ Real IBM watsonx.ai integration (not mock)
+- ✅ Real IBM watsonx.ai integration
 - ✅ 3 specialized AI agents working in concert
 - ✅ Real-time WebSocket data streaming
 - ✅ Professional iOS app with native performance
@@ -244,10 +230,10 @@ MIT License - Built for IBM TechXchange Hackathon 2025
 
 ## 👨‍💻 **Author**
 
-**Amith Kumar Yadav K**
+**Amit Kumar Yadav K**
+**Aryan Yadav**
+**Srikar**
 - IBM TechXchange Hackathon 2025 Participant
 - Smart Energy Optimization with watsonx.ai
 
 ---
-
-**🏆 Ready for IBM TechXchange Hackathon Demonstration!**
