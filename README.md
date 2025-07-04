@@ -55,7 +55,7 @@ Smart Energy Optimizer is an intelligent home energy management system that leve
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/smart-energy-optimizer.git
+   git clone https://github.com/Amith71965/smart-energy-optimizer.git
    cd smart-energy-optimizer
    ```
 
