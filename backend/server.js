@@ -10,7 +10,6 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const WebSocket = require('ws');
 const http = require('http');
-const mongoose = require('mongoose');
 require('dotenv').config();
 
 const app = express();
@@ -22,7 +21,6 @@ const deviceRoutes = require('./api/routes/devices');
 const energyRoutes = require('./api/routes/energy');
 const predictionRoutes = require('./api/routes/predictions');
 const optimizationRoutes = require('./api/routes/optimization');
-const authRoutes = require('./api/routes/auth');
 
 // Import services - REAL AI ORCHESTRATOR
 const { RealEnergyManagementOrchestrator } = require('./agents/real-orchestrator');
@@ -37,14 +35,6 @@ app.use(express.urlencoded({ extended: true }));
 // Initialize REAL AI orchestrator and attach to app
 const orchestrator = new RealEnergyManagementOrchestrator();
 app.locals.orchestrator = orchestrator;
-
-// MongoDB connection
-mongoose.connect('mongodb://localhost:27017/smart-energy-optimizer', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.error('MongoDB connection error:', err));
 
 // Root welcome message
 app.get('/', (req, res) => {
@@ -62,7 +52,6 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/energy', energyRoutes);
 app.use('/api/predictions', predictionRoutes);
 app.use('/api/optimization', optimizationRoutes);
-app.use('/api/auth', authRoutes);
 
 // Health check with AI system status
 app.get('/health', async (req, res) => {
